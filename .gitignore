@@ -2,5 +2,3 @@
 __pycache__/
 experiments/
 
-#need to add this because I have to locally change path
-src/__main__.py

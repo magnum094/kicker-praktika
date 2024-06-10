@@ -29,6 +29,12 @@ def create_kicker_env(config: ConfigParser, seed: int):
     # Add Wrappers here
     ############################################
 
+    #These two Wrappers were removed in the new version
+    #env = VecPBRSWrapper(env)
+    #env = VecNormalize(env)
+
+    # Rather than modefying the enviroment we can add wrappers
+    
     if not env_conf.getboolean('render_training'):
         video_conf = config['VideoRecording']
         print(f"Recording video every {video_conf.getint('video_interval')} steps with a length of "

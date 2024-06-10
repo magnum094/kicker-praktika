@@ -8,6 +8,7 @@ def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
     alg_config = config['Algorithm']
     try:
         policy_kwargs = ast.literal_eval(alg_config['policy_kwargs'])
+        #This code creates our trainer, currently using the A2C algorithm
         model = algorithm_class(env=env, seed=seed, verbose=1,
                                 policy=alg_config['policy'],
                                 policy_kwargs=policy_kwargs,
