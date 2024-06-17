@@ -4,7 +4,7 @@ sys.path.append("./")
 from configparser import ConfigParser, ExtendedInterpolation
 
 from src.environment import create_kicker_env
-from src.sb3.stable_baselines3 import A2C
+from src.sb3.stable_baselines3 import A2C, DQN, PPO
 from src.tensorboard_aggregator import aggregator
 from train import train_kicker
 
@@ -12,7 +12,7 @@ from train import train_kicker
 def main():
     config = ConfigParser(interpolation=ExtendedInterpolation())
     config.read('./resources/config.ini')
-    used_rl_algorithm = A2C
+    used_rl_algorithm = PPO
     for seed in range(1, 4):
         env = create_kicker_env(config=config, seed=seed)
         #Starts Training

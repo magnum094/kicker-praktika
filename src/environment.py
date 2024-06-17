@@ -5,6 +5,10 @@ from sb3.stable_baselines3.common.monitor import Monitor
 from sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
 from sb3.stable_baselines3.common.vec_env.vec_pbrs import VecPBRSWrapper
 from sb3.stable_baselines3.common.vec_env.vec_normalize import VecNormalize
+from gymnasium.wrappers import TransformReward
+from gymnasium import Wrapper
+
+
 
 
 def create_kicker_env(config: ConfigParser, seed: int):
@@ -21,7 +25,10 @@ def create_kicker_env(config: ConfigParser, seed: int):
                  lateral_bins=env_conf.getint('lateral_bins'),
                  angular_bins=env_conf.getint('angular_bins'),
                  step_frequency=env_conf.getint('step_frequency'))
+    
     # Default wrappers
+    env = CustomWrapper(env)
+    #env = TransformReward(env, lambda r: 100*r) #Multiply Rewards by 0.01
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
 
@@ -51,3 +58,17 @@ def load_normalized_kicker_env(config: ConfigParser, seed: int, normalize_path: 
     env = create_kicker_env(seed=seed, config=config)
     env = VecNormalize.load(normalize_path, env)
     return env
+
+class CustomWrapper(Wrapper):
+
+    def step(self, action):
+        next_state, reward, terminated, truncated, info = self.env.step(action)
+
+        # acces enviroment info through info
+        print(info["ball_position"])
+        # goal postions
+        #1.216 < ball_pos[0] < 1.376
+        #-0.3 < ball_pos[1] < 0.3
+        #-0.341 < ball_pos[2] < 0.741
+
+        return next_state, reward-0.001, terminated, truncated, info

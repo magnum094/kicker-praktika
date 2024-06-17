@@ -88,7 +88,7 @@ class Kicker(gym.Env):
             qvel = self.data.qvel.copy()
 
         # Ball Velocity
-        goal_height = -1.25
+        goal_height = -1.25                                                            #2 is the speed of the ball, maybe change to randome
         vels = calculate_axis_velocities(qpos[2], qpos[3], goal_height, [-0.175, 0.175], 2, self.random_num_generator)
         qvel[2] = vels[0]
         qvel[3] = vels[1]
