@@ -12,7 +12,7 @@ from train import train_kicker
 def main():
     config = ConfigParser(interpolation=ExtendedInterpolation())
     config.read('./resources/config.ini')
-    used_rl_algorithm = PPO
+    used_rl_algorithm = DQN
     for seed in range(1, 4):
         env = create_kicker_env(config=config, seed=seed)
         #Starts Training

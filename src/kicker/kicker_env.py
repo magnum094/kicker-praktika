@@ -9,6 +9,50 @@ from src.kicker.viewer import MujocoViewer
 
 
 class Kicker(gym.Env):
+    """
+    Kicker environment for reinforcement learning.
+
+    Dimensions of the playing field:
+    - Long side of the kicker (x-axis) : [-1.34, 1.34]
+    - Short side of the kicker (y-axis): [-0.71, 0.71]
+    - Height of the kicker (z-axis): [0.0, 0.9]
+
+    Meaning of mujoco sensors:
+    - 0: white goal sensor
+    - 1: black goal sensor
+    - 2-4: ball velocity sensor
+    - 5-7: ball accelerator sensor
+    - 8: black goalie lateral position sensor
+    - 9: black goalie lateral velocity sensor
+    - 10: black goalie angular position sensor
+    - 11: black goalie angular velocity sensor
+
+    Meaning of mujoco actuators:
+    - 0: black goalie lateral actuator
+    - 1: black goalie angular actuator
+
+    Meaning of qpos (positions)
+    - 0: black goalie lateral
+    - 1: black goalie angular
+    - 2: ball x
+    - 3: ball y
+    - 4: ball z
+    - 5: ball quaternion w
+    - 6: ball quaternion x
+    - 7: ball quaternion y
+    - 8: ball quaternion z
+
+    Meaning of qvel (velocities):
+    - 0: black goalie lateral
+    - 1: black goalie angular
+    - 2: ball x
+    - 3: ball y
+    - 4: ball z
+    - 5: ball angular x
+    - 6: ball angular y
+    - 7: ball angular z
+
+    """
     spec = EnvSpec("KickerEnv", "no-entry-point")
 
     def __init__(self,
@@ -56,10 +100,14 @@ class Kicker(gym.Env):
         self.viewer = MujocoViewer(self.model, self.dt)
 
         # General reinforcement learning attributes
-        self.last_action = np.zeros(2)
-        self.observation_space = self._make_observation_space()
+        self._initialize_last_action()
         self.action_space = self._make_action_space()
+        self.observation_space = self._make_observation_space()
         self.episode_step = 0
+        print("-" * 50)
+        print("Using Observation Space: ", self.observation_space)
+        print("Using Action Space: ", self.action_space)
+        print("-" * 50)
 
     def set_render_mode(self, render_mode: str):
         self.render_mode = render_mode
@@ -70,7 +118,7 @@ class Kicker(gym.Env):
             self.random_num_generator = np.random.default_rng(seed=self.seed)
 
         self.episode_step = 0
-        self.last_action = np.zeros(2)
+        self._initialize_last_action()
 
         if self.reset_goalie_position:
             qpos = np.zeros(self.model.nq)
@@ -79,8 +127,8 @@ class Kicker(gym.Env):
 
         # Ball Position
         qpos[2] = -0.4479 + 0.075  # x ball
-        qpos[3] = self.random_num_generator.uniform(low=-0.3, high=0.3)  # z ball
-        qpos[4] = 0.615  # y ball
+        qpos[3] = self.random_num_generator.uniform(low=-0.3, high=0.3)  # y ball
+        qpos[4] = 0.615  # z ball
 
         if self.reset_goalie_position:
             qvel = np.zeros(self.model.nv)
@@ -88,7 +136,7 @@ class Kicker(gym.Env):
             qvel = self.data.qvel.copy()
 
         # Ball Velocity
-        goal_height = -1.25                                                            #2 is the speed of the ball, maybe change to randome
+        goal_height = -1.25
         vels = calculate_axis_velocities(qpos[2], qpos[3], goal_height, [-0.175, 0.175], 2, self.random_num_generator)
         qvel[2] = vels[0]
         qvel[3] = vels[1]
@@ -113,7 +161,7 @@ class Kicker(gym.Env):
         if self.viewer and self.render_mode == "human":
             self.viewer.render(self.data)
 
-        self.last_action = action
+        self._update_last_action(action)
         self.episode_step += 1
 
         next_state = self.get_observation()
@@ -166,10 +214,7 @@ class Kicker(gym.Env):
         info = {
             "black_conceded": 1 if black_conceded else 0,
             "white_conceded": 1 if white_conceded else 0,
-            "ball_position": ball_pos,
-            "ball_x_position": ball_pos[0],
-            "ball_y_position": ball_pos[1],
-            "ball_z_position": ball_pos[2]
+            "ball_position": ball_pos
         }
 
         return reward, info
@@ -201,49 +246,27 @@ class Kicker(gym.Env):
         action -= self.lateral_bins
         return np.array([self.last_action[0], -1 + (action * self.angular_increment)])
 
-    # def _flatten_dynamic_multi_discrete_action(self, action):
-    #     lateral_action = self.last_action[0]
-    #     if action[0] > self.lateral_bins//2:
-    #         lateral_action -= (action[0] - (self.lateral_bins//2)) * self.lateral_increment
-    #     else:
-    #         lateral_action += action[0] * self.lateral_increment
-    #
-    #     angular_action = self.last_action[1]
-    #     if action[1] > self.angular_bins // 2:
-    #         angular_action -= (action[1] - (self.angular_bins // 2)) * self.angular_increment
-    #     else:
-    #         angular_action += action[1] * self.angular_increment
-    #     return np.array([lateral_action, angular_action])
-
-    # def _flatten_dynamic_discrete_action(self, action):
-    #     action += 1  # To avoid 0 in increment multiplication
-    #     increment_threshold = (self.half_combined_discrete_bins - 1)
-    #
-    #     using_lateral_action = True
-    #     last_action = self.last_action[0]
-    #     if action >= self.half_combined_discrete_bins:
-    #         using_lateral_action = False
-    #         action -= self.half_combined_discrete_bins
-    #         last_action = self.last_action[1]
-    #
-    #     discrete_action = last_action
-    #     if action < increment_threshold:
-    #         discrete_action += action * self.discrete_increment
-    #     elif action > increment_threshold:
-    #         discrete_action -= (action - increment_threshold) * self.discrete_increment
-    #
-    #     binned_action = np.clip(discrete_action, a_min=-1, a_max=1)
-    #     return np.array([binned_action, self.last_action[1]]) if using_lateral_action else np.array(
-    #         [self.last_action[0], binned_action])
-
     def _get_discrete_observation(self) -> np.ndarray:
         sensors_wo_goals = self.data.sensordata[2:12]
 
         return np.concatenate([
             sensors_wo_goals,
             self.data.body("ball").xpos,
-            self.last_action
+            self._get_last_action()
         ])
+
+    def _initialize_last_action(self) -> None:
+        self.last_action = np.zeros(2)
+        self.last_discrete_action = 0
+
+    def _get_last_action(self) -> np.ndarray:
+        return np.array([self.last_discrete_action]) if isinstance(self.action_space, gym.spaces.Discrete) else self.last_action
+
+    def _update_last_action(self, action) -> None:
+        if isinstance(self.action_space, gym.spaces.Discrete):
+            self.last_discrete_action = action
+        else:
+            self.last_action = action
 
     def _get_image_observation(self) -> np.ndarray:
         self.renderer.update_scene(self.data, self.camera_id)
@@ -265,11 +288,9 @@ class Kicker(gym.Env):
             action_low, action_high = action_bounds.T
             return gym.spaces.Box(low=action_low, high=action_high, dtype=np.float32, seed=self.seed)
         elif self.multi_discrete_act_space:
-            return gym.spaces.MultiDiscrete([self.lateral_bins, self.angular_bins],
-                                            seed=self.seed)
+            return gym.spaces.MultiDiscrete([self.lateral_bins, self.angular_bins], seed=self.seed)
         else:
-            return gym.spaces.Discrete(self.lateral_bins + self.angular_bins,
-                                       seed=self.seed)
+            return gym.spaces.Discrete(self.lateral_bins + self.angular_bins, seed=self.seed)
 
     def _make_observation_space(self) -> spaces.Box:
         """
@@ -278,13 +299,9 @@ class Kicker(gym.Env):
         :return: the environment observation space
         """
         if self.image_obs_space:
-            # When using image as input,
-            # one image contains the bits 0 -> 0, 1 -> 255
-            # and the rest is filled with zeros
             return gym.spaces.Box(low=0, high=255, shape=self._get_image_observation().shape, dtype=np.uint8)
         else:
-            # In the discrete case, the agent act on the binary
-            # representation of the observation
+            # In the discrete case, the agent acts on the feature vector representation of the observation
             return gym.spaces.Box(low=-np.inf, high=np.inf, shape=self._get_discrete_observation().shape,
                                   dtype=np.float32)
 

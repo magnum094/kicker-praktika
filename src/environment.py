@@ -65,7 +65,7 @@ class CustomWrapper(Wrapper):
         next_state, reward, terminated, truncated, info = self.env.step(action)
 
         # acces enviroment info through info
-        print(info["ball_position"])
+        #print(info["ball_position"])
         # goal postions
         #1.216 < ball_pos[0] < 1.376
         #-0.3 < ball_pos[1] < 0.3
