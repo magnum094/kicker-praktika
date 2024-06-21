@@ -27,7 +27,7 @@ def create_kicker_env(config: ConfigParser, seed: int):
                  step_frequency=env_conf.getint('step_frequency'))
     
     # Default wrappers
-    #env = LingeringReward(env)
+    env = LingeringReward(env)
     #env = TransformReward(env, lambda r: 100*r) #Multiply Rewards by 0.01
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
@@ -71,6 +71,6 @@ class LingeringReward(Wrapper):
         #-0.3 < ball_pos[1] < 0.3
         #-0.341 < ball_pos[2] < 0.741
         goal_post = [1.296, 0, 0.2]
-        distance_ball_goal = sum([(next_state[0][i] - goal_post[i])**2 for i in range(3)])**0.5
+        distance_ball_goal = sum([(info["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
         lingering_reward = 0.0001*distance_ball_goal
         return next_state, reward-lingering_reward, terminated, truncated, info
