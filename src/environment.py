@@ -35,7 +35,7 @@ def create_kicker_env(config: ConfigParser, seed: int):
 
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
-    env = LingeringReward(env)
+    #env = LingeringReward(env)
     ############################################
     # Add Wrappers here
     ############################################
