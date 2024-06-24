@@ -2,11 +2,12 @@ from configparser import ConfigParser
 
 from kicker.kicker_env import Kicker
 from sb3.stable_baselines3.common.monitor import Monitor
-from sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder
+from sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecEnvWrapper, VecEnv
 from sb3.stable_baselines3.common.vec_env.vec_pbrs import VecPBRSWrapper
 from sb3.stable_baselines3.common.vec_env.vec_normalize import VecNormalize
 from gymnasium.wrappers import TransformReward
 from gymnasium import Wrapper
+from src.sb3.stable_baselines3.common.vec_env.base_vec_env import VecEnvStepReturn, VecEnvObs
 
 
 
@@ -26,12 +27,15 @@ def create_kicker_env(config: ConfigParser, seed: int):
                  angular_bins=env_conf.getint('angular_bins'),
                  step_frequency=env_conf.getint('step_frequency'))
     
+    
+   
+    #env = TransformReward(env, lambda r: 100*r) #Multiply Rewards by 0.01    
+    
     # Default wrappers
-    env = LingeringReward(env)
-    #env = TransformReward(env, lambda r: 100*r) #Multiply Rewards by 0.01
+
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
-
+    env = LingeringReward(env)
     ############################################
     # Add Wrappers here
     ############################################
@@ -59,10 +63,19 @@ def load_normalized_kicker_env(config: ConfigParser, seed: int, normalize_path: 
     env = VecNormalize.load(normalize_path, env)
     return env
 
-class LingeringReward(Wrapper):
+class LingeringReward(VecEnvWrapper):
 
-    def step(self, action):
-        next_state, reward, terminated, truncated, info = self.env.step(action)
+    def __init__(self, venv: VecEnv, gamma: float = 0.99):
+        VecEnvWrapper.__init__(self, venv, venv.observation_space, venv.action_space)
+        self.venv = venv
+
+
+    def reset(self) -> VecEnvObs:
+        obs = self.venv.reset()
+        return obs
+
+    def step_wait(self):
+        observations, rewards, dones, infos = self.venv.step_wait()
 
         # acces enviroment info through info
         #print(info["ball_position"])
@@ -71,6 +84,10 @@ class LingeringReward(Wrapper):
         #-0.3 < ball_pos[1] < 0.3
         #-0.341 < ball_pos[2] < 0.741
         goal_post = [1.296, 0, 0.2]
-        distance_ball_goal = sum([(info["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
-        lingering_reward = 0.0001*distance_ball_goal
-        return next_state, reward-lingering_reward, terminated, truncated, info
+        distance_ball_goal = sum([(infos[0]["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
+        lingering_reward = 0.0001*min(10,distance_ball_goal)
+
+
+        #infos[0]["original_Reward"] = rewards[0]
+        rewards[0] = rewards[0] - lingering_reward
+        return observations, rewards, dones, infos 

@@ -1,7 +1,7 @@
 import ast
 from configparser import ConfigParser
 from src.config_logging import save_run_info
-from src.sb3.stable_baselines3.common.callbacks import CheckpointCallback
+from src.sb3.stable_baselines3.common.callbacks import CheckpointCallback, CallbackList, TensorboardCallback
 
 
 def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
@@ -13,13 +13,7 @@ def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
                                 policy=alg_config['policy'],
                                 policy_kwargs=policy_kwargs,
                                 tensorboard_log=alg_config['tensorboard_log'],
-                                num_layers=alg_config.getint('num_layers'),
-                                optimizer=alg_config['optimizer'],
-                                learning_rate=alg_config.getfloat('learning_rate'),
-                                buffer_size=alg_config.getint('buffer_size'),
-                                batch_size=alg_config.getint('batch_size'),
-                                discount_factor=alg_config.getfloat('discount_factor'),
-                                exploration_fraction=alg_config.getfloat('exploration_fraction'),
+                          
 
                                 ################################
                                 # Add here more hyperparameters if needed, following the above scheme
@@ -30,7 +24,15 @@ def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
         # Fall back to default policy_kwargs
         model = algorithm_class(env=env, seed=seed, verbose=1,
                                 policy=alg_config['policy'],
-                                tensorboard_log=alg_config['tensorboard_log'])
+                                tensorboard_log=alg_config['tensorboard_log'],
+                                #num_layers=alg_config.getint('num_layers'),
+                                #optimizer_class=alg_config['optimizer'],
+                                learning_rate=alg_config.getfloat('learning_rate'),
+                                #buffer_size=alg_config.getint('buffer_size'),
+                                batch_size=alg_config.getint('batch_size'),
+                                #gamma=alg_config.getfloat('discount_factor'),
+                                #exploration_fraction=alg_config.getfloat('exploration_fraction'),
+                                )
 
     save_run_info(config=config,
                   seed=seed,
@@ -45,8 +47,10 @@ def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
 
 def get_callback(config: ConfigParser, seed: int):
     callback_config = config['Callback']
-    return CheckpointCallback(name_prefix=f"rl_model_{seed}",
+    checkpoint_callback = CheckpointCallback(name_prefix=f"rl_model_{seed}",
                               save_freq=int(callback_config['save_freq']),
                               save_path=callback_config['save_path'],
                               save_replay_buffer=callback_config.getboolean('save_replay_buffer'),
                               save_vecnormalize=callback_config.getboolean('save_vecnormalize'))
+    logging_callback = TensorboardCallback()
+    return CallbackList([checkpoint_callback, logging_callback])
