@@ -3,10 +3,10 @@ from configparser import ConfigParser
 from numpy import ndarray
 
 from kicker.kicker_env import Kicker
-from sb3.stable_baselines3.common.monitor import Monitor
-from sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecEnvWrapper, VecEnv
-from sb3.stable_baselines3.common.vec_env.vec_pbrs import VecPBRSWrapper
-from sb3.stable_baselines3.common.vec_env.vec_normalize import VecNormalize
+from src.sb3.stable_baselines3.common.monitor import Monitor
+from src.sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecEnvWrapper, VecEnv
+from src.sb3.stable_baselines3.common.vec_env.vec_pbrs import VecPBRSWrapper
+from src.sb3.stable_baselines3.common.vec_env.vec_normalize import VecNormalize
 from gymnasium.wrappers import TransformReward
 from gymnasium import Wrapper
 from src.sb3.stable_baselines3.common.vec_env.base_vec_env import VecEnvStepReturn, VecEnvObs
@@ -41,6 +41,8 @@ def create_kicker_env(config: ConfigParser, seed: int):
     ############################################
     # Add Wrappers here
     ############################################
+    alg_config = config['Algorithm']
+    #env = VecNormalize(env, norm_obs=True, norm_reward=True, gamma=alg_config.getfloat('discount_factor'))
     #changes to the reward aren't loged but do have an effect on training
     #env = vecLingeringReward(env)
     #env = vecMultiplyReward(env)
