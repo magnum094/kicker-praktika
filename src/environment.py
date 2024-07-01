@@ -1,5 +1,7 @@
 from configparser import ConfigParser
 
+from numpy import ndarray
+
 from kicker.kicker_env import Kicker
 from sb3.stable_baselines3.common.monitor import Monitor
 from sb3.stable_baselines3.common.vec_env import DummyVecEnv, VecVideoRecorder, VecEnvWrapper, VecEnv
@@ -29,22 +31,20 @@ def create_kicker_env(config: ConfigParser, seed: int):
     
     
    
-    #env = TransformReward(env, lambda r: 100*r) #Multiply Rewards by 0.01    
-    
+       
+    #env = LingeringReward(env)
     # Default wrappers
 
     env = Monitor(env)
     env = DummyVecEnv([lambda: env])
-    #env = LingeringReward(env)
+    
     ############################################
     # Add Wrappers here
     ############################################
+    #changes to the reward aren't loged but do have an effect on training
+    #env = vecLingeringReward(env)
+    #env = vecMultiplyReward(env)
 
-    #These two Wrappers were removed in the new version
-    #env = VecPBRSWrapper(env)
-    #env = VecNormalize(env)
-
-    # Rather than modefying the enviroment we can add wrappers
     
     if not env_conf.getboolean('render_training'):
         video_conf = config['VideoRecording']
@@ -63,9 +63,9 @@ def load_normalized_kicker_env(config: ConfigParser, seed: int, normalize_path: 
     env = VecNormalize.load(normalize_path, env)
     return env
 
-class LingeringReward(VecEnvWrapper):
+class vecLingeringReward(VecEnvWrapper):
 
-    def __init__(self, venv: VecEnv, gamma: float = 0.99):
+    def __init__(self, venv: VecEnv):
         VecEnvWrapper.__init__(self, venv, venv.observation_space, venv.action_space)
         self.venv = venv
 
@@ -84,10 +84,42 @@ class LingeringReward(VecEnvWrapper):
         #-0.3 < ball_pos[1] < 0.3
         #-0.341 < ball_pos[2] < 0.741
         goal_post = [1.296, 0, 0.2]
-        distance_ball_goal = sum([(infos[0]["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
-        lingering_reward = 0.0001*min(10,distance_ball_goal)
+        for j in range(len(infos)):
+            distance_ball_goal = sum([(infos[j]["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
+            lingering_reward = 0.0001*distance_ball_goal
+            #infos[j]["original_Reward"] = rewards[j]
+            rewards[j] = rewards[j] - lingering_reward
 
-
-        #infos[0]["original_Reward"] = rewards[0]
-        rewards[0] = rewards[0] - lingering_reward
         return observations, rewards, dones, infos 
+
+class vecMultiplyReward(VecEnvWrapper):
+
+    def __init__(self, venv: VecEnv):
+        VecEnvWrapper.__init__(self, venv, venv.observation_space, venv.action_space)
+        self.venv = venv
+
+    def reset(self) -> VecEnvObs:
+        obs = self.venv.reset()
+        return obs
+
+    def step_wait(self) -> VecEnvStepReturn:
+        observations, rewards, dones, infos = self.venv.step_wait()
+        for i in range(len(rewards)):
+            rewards[i] = rewards[i] * 100
+        #print("Modefied Reward: ", rewards[0])
+        return observations, rewards, dones, infos
+    
+
+class LingeringReward(Wrapper):
+    def step(self, action):
+        next_state, reward, terminated, truncated, info = self.env.step(action)
+        # acces enviroment info through info
+        #print(info["ball_position"])
+        # goal postions
+        #1.216 < ball_pos[0] < 1.376
+        #-0.3 < ball_pos[1] < 0.3
+        #-0.341 < ball_pos[2] < 0.741
+        goal_post = [1.296, 0, 0.2]
+        distance_ball_goal = sum([(info["ball_position"][i] - goal_post[i])**2 for i in range(3)])**0.5
+        lingering_reward = 0.0001*distance_ball_goal
+        return next_state, reward-lingering_reward, terminated, truncated, info

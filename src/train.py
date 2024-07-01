@@ -25,11 +25,9 @@ def train_kicker(config: ConfigParser, seed: int, algorithm_class, env):
         model = algorithm_class(env=env, seed=seed, verbose=1,
                                 policy=alg_config['policy'],
                                 tensorboard_log=alg_config['tensorboard_log'],
-                                #num_layers=alg_config.getint('num_layers'),
-                                #optimizer_class=alg_config['optimizer'],
-                                learning_rate=alg_config.getfloat('learning_rate'),
+                                #learning_rate=alg_config.getfloat('learning_rate'),
                                 #buffer_size=alg_config.getint('buffer_size'),
-                                batch_size=alg_config.getint('batch_size'),
+                                #batch_size=alg_config.getint('batch_size'),
                                 #gamma=alg_config.getfloat('discount_factor'),
                                 #exploration_fraction=alg_config.getfloat('exploration_fraction'),
                                 )

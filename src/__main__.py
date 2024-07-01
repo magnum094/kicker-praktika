@@ -15,7 +15,7 @@ def main():
     config = ConfigParser(interpolation=ExtendedInterpolation())
     config.read('./resources/config.ini')
     used_rl_algorithm = PPO
-    for seed in range(1, 2):
+    for seed in range(1, 4):
         env = create_kicker_env(config=config, seed=seed)
         #Starts Training
         train_kicker(config=config, seed=seed, algorithm_class=used_rl_algorithm, env=env)
