@@ -41,8 +41,8 @@ def create_kicker_env(config: ConfigParser, seed: int):
     ############################################
     # Add Wrappers here
     ############################################
-    alg_config = config['Algorithm']
-    #env = VecNormalize(env, norm_obs=True, norm_reward=True, gamma=alg_config.getfloat('discount_factor'))
+    dgn_config = config['DQN']
+    env = VecNormalize(env, norm_obs=True, norm_reward=True, gamma=dgn_config.getfloat('discount_factor'))
     #changes to the reward aren't loged but do have an effect on training
     #env = vecLingeringReward(env)
     #env = vecMultiplyReward(env)
