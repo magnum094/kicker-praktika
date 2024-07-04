@@ -20,7 +20,7 @@ def main():
     used_rl_algorithm = PPO
     execution_mode = config['Common']['mode']
     if execution_mode == 'train':
-        for seed in range(1, 4):
+        for seed in range(1, 2):
             env = create_kicker_env(config=config, seed=seed)
             train_kicker(config=config, seed=seed, algorithm_class=used_rl_algorithm, env=env)
         aggregator.main(path_arg=config['Algorithm']['tensorboard_log'])
