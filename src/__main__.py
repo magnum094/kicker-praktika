@@ -4,7 +4,7 @@ sys.path.append("./")
 from configparser import ConfigParser, ExtendedInterpolation
 
 from src.environment import create_kicker_env
-from src.sb3.stable_baselines3 import A2C, DQN, PPO
+from src.sb3.stable_baselines3 import A2C, DQN, PPO, DDPG, TD3, SAC
 
 from src.sb3_contrib.sb3_contrib import TQC
 from src.tensorboard_aggregator import aggregator
@@ -20,7 +20,7 @@ def main():
     used_rl_algorithm = PPO
     execution_mode = config['Common']['mode']
     if execution_mode == 'train':
-        for seed in range(1, 2):
+        for seed in range(1, 4):
             env = create_kicker_env(config=config, seed=seed)
             train_kicker(config=config, seed=seed, algorithm_class=used_rl_algorithm, env=env)
         aggregator.main(path_arg=config['Algorithm']['tensorboard_log'])
